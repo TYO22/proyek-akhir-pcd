@@ -237,5 +237,117 @@ def convolution(img, preset="Sharpen", custom="0 -1 0; -1 5 -1; 0 -1 0", normali
 
 
 # =============================================================================
-# --- Frekuensi & Warna ---
+# 7. TRANSFORMASI FOURIER
 # =============================================================================
+@register("basic_ops.fourier_transform")
+def fourier_transform(img, view="Magnitude (log)"):
+    """FFT 2D via numpy (tetap, karena cv2.dft kurang fleksibel untuk shift/log)."""
+    spectrum = np.fft.fftshift(np.fft.fft2(C.to_gray(img)))
+    if view.startswith("Magnitude"):
+        return C.normalize_to_255(np.log1p(np.abs(spectrum)))
+    return (np.angle(spectrum) + math.pi) / (2 * math.pi) * 255.0
+
+
+# =============================================================================
+# 8. COLOURING
+# =============================================================================
+@register("basic_ops.colouring.binary")
+def colouring_binary(img, method="Manual", threshold=128):
+    """Binerisasi via cv2.threshold (Otsu otomatis atau manual)."""
+    gray = C.clip_u8(C.to_gray(img))
+    if method.startswith("Otsu"):
+        _, out = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    else:
+        _, out = cv2.threshold(gray, int(threshold), 255, cv2.THRESH_BINARY)
+    return out > 0
+
+
+@register("basic_ops.colouring.grayscale")
+def colouring_grayscale(img):
+    """Abu-abu via cv2.cvtColor (lebih cepat)."""
+    a = np.asarray(img)
+    if a.dtype != np.uint8:
+        a = np.clip(np.rint(a), 0, 255).astype(np.uint8)
+    return cv2.cvtColor(a, cv2.COLOR_RGB2GRAY).astype(np.float32)
+
+
+def _pick(planes, names, view):
+    """Pilih tampilan: Komposit = RGB, selain itu satu kanal."""
+    if view == "Komposit":
+        return np.stack(planes, axis=-1)
+    return planes[names.index(view)]
+
+
+@register("basic_ops.colouring.rgb")
+def colouring_rgb(img, view="Asli"):
+    if view == "Asli":
+        return img
+    return img[..., ("Red", "Green", "Blue").index(view)]
+
+
+@register("basic_ops.colouring.hsv")
+def colouring_hsv(img, view="Komposit"):
+    """HSV via cv2.cvtColor."""
+    h, s, v = C.rgb_to_hsv(img)
+    return _pick([h * 255.0, s * 255.0, v * 255.0], ["Hue", "Saturation", "Value"], view)
+
+
+@register("basic_ops.colouring.cmy")
+def colouring_cmy(img, view="Komposit"):
+    a = img.astype(np.float32)
+    return _pick([255.0 - a[..., 0], 255.0 - a[..., 1], 255.0 - a[..., 2]],
+                 ["Cyan", "Magenta", "Yellow"], view)
+
+
+@register("basic_ops.colouring.yuv")
+def colouring_yuv(img, view="Komposit"):
+    a = img.astype(np.float32)
+    y = 0.299 * a[..., 0] + 0.587 * a[..., 1] + 0.114 * a[..., 2]
+    u = 0.492 * (a[..., 2] - y)
+    v = 0.877 * (a[..., 0] - y)
+    return _pick([y, (u + 111.2) / 222.4 * 255.0, (v + 156.8) / 313.6 * 255.0],
+                 ["Y", "U", "V"], view)
+
+
+@register("basic_ops.colouring.yiq")
+def colouring_yiq(img, view="Komposit"):
+    a = img.astype(np.float32)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    y = 0.299 * r + 0.587 * g + 0.114 * b
+    i = 0.595716 * r - 0.274453 * g - 0.321263 * b
+    q = 0.211456 * r - 0.522591 * g + 0.311135 * b
+    return _pick([y, (i + 151.9) / 303.8 * 255.0, (q + 133.3) / 266.6 * 255.0],
+                 ["Y", "I", "Q"], view)
+
+
+# --- Pseudo-colour (colormap) ---
+_CMAP_STOPS = {
+    "Jet": [(0.0, 0, 0, 128), (0.125, 0, 0, 255), (0.375, 0, 255, 255),
+            (0.625, 255, 255, 0), (0.875, 255, 0, 0), (1.0, 128, 0, 0)],
+    "Hot": [(0.0, 0, 0, 0), (0.365, 255, 0, 0), (0.746, 255, 255, 0), (1.0, 255, 255, 255)],
+    "Ocean": [(0.0, 0, 128, 0), (0.35, 0, 70, 150), (0.7, 90, 170, 215), (1.0, 255, 255, 255)],
+    "Cool": [(0.0, 0, 255, 255), (1.0, 255, 0, 255)],
+    "Bone": [(0.0, 0, 0, 0), (0.37, 80, 80, 113), (0.75, 166, 198, 198), (1.0, 255, 255, 255)],
+    "Turbo": [(0.0, 48, 18, 59), (0.125, 68, 111, 222), (0.25, 35, 191, 222), (0.375, 70, 248, 132),
+              (0.5, 162, 252, 60), (0.625, 225, 221, 55), (0.75, 254, 146, 42),
+              (0.875, 217, 56, 6), (1.0, 122, 4, 3)],
+    "Viridis": [(0.0, 68, 1, 84), (0.111, 72, 40, 120), (0.222, 62, 73, 137), (0.333, 49, 104, 142),
+                (0.444, 38, 130, 142), (0.556, 31, 158, 137), (0.667, 53, 183, 121),
+                (0.778, 110, 206, 88), (0.889, 181, 222, 43), (1.0, 253, 231, 37)],
+}
+
+
+def _build_lut(name: str) -> np.ndarray:
+    """Bangun tabel 256 warna (256,3) untuk colormap."""
+    t = np.linspace(0.0, 1.0, 256, dtype=np.float32)
+    if name == "Rainbow":
+        return C.hsv_to_rgb((1.0 - t) * 0.75, np.ones(256, np.float32), np.ones(256, np.float32))
+    stops = np.array(_CMAP_STOPS[name], dtype=np.float32)
+    return np.stack([np.interp(t, stops[:, 0], stops[:, c]) for c in (1, 2, 3)], axis=-1)
+
+
+@register("basic_ops.colouring.pseudo")
+def colouring_pseudo(img, cmap="Jet"):
+    """Pseudo-color via LUT."""
+    gray = C.clip_u8(C.to_gray(img))
+    return _build_lut(cmap)[gray]
