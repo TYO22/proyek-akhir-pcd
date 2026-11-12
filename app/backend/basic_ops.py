@@ -19,7 +19,7 @@ from app.backend import register
 # =============================================================================
 @register("basic_ops.negative")
 def negative(img):
-    """Negatif citra via cv2.bitwise_not (lebih cepat dari 255 - img)."""
+    """Negatif citra via cv2.bitwise_not."""
     return cv2.bitwise_not(np.asarray(img))
 
 
@@ -64,7 +64,7 @@ def multiply(img, mode="Konstanta", value=1.5, file=""):
 
 @register("basic_ops.arithmetic.divide")
 def divide(img, mode="Konstanta", value=2, file=""):
-    """Pembagian aman via numpy (cv2.divide tidak cocok untuk float arbitrary)."""
+    """Pembagian aman via numpy."""
     f = img.astype(np.float32)
     if mode == "Gambar kedua":
         g2 = _operand(img, mode, value, file)
@@ -221,7 +221,7 @@ _PRESET_KERNELS = {
 
 @register("basic_ops.convolution")
 def convolution(img, preset="Sharpen", custom="0 -1 0; -1 5 -1; 0 -1 0", normalize="Tidak"):
-    """Konvolusi 2D via cv2.filter2D (sangat cepat, implementasi C++)."""
+    """Konvolusi 2D via cv2.filter2D."""
     k = C.parse_kernel(custom) if preset == "Custom" else _PRESET_KERNELS[preset].copy()
     if normalize == "Ya":
         s = float(k.sum())
@@ -241,7 +241,7 @@ def convolution(img, preset="Sharpen", custom="0 -1 0; -1 5 -1; 0 -1 0", normali
 # =============================================================================
 @register("basic_ops.fourier_transform")
 def fourier_transform(img, view="Magnitude (log)"):
-    """FFT 2D via numpy (tetap, karena cv2.dft kurang fleksibel untuk shift/log)."""
+    """FFT 2D via numpy."""
     spectrum = np.fft.fftshift(np.fft.fft2(C.to_gray(img)))
     if view.startswith("Magnitude"):
         return C.normalize_to_255(np.log1p(np.abs(spectrum)))
