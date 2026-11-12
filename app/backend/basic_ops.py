@@ -1,11 +1,14 @@
 """BACKEND menu "Basic Ops": negatif, aritmetika, boolean, geometrik, threshold, konvolusi, Fourier, warna.
 Menggunakan cv2 untuk konvolusi, geometrik, konversi warna, dan operasi aritmetika.
 """
+
+from __future__ import annotations
+
 # ============================================================================
 # FILE    : app/backend/basic_ops.py
 # LIBRARY : cv2 (OpenCV), numpy, PIL
 # ============================================================================
-from __future__ import annotations
+
 import math
 import numpy as np
 import cv2
