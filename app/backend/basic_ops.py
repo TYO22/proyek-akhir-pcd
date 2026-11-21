@@ -83,7 +83,7 @@ def _bool_operand(img, mode, value, file):
     if mode == "Gambar kedua":
         h, w = img.shape[:2]
         return C.load_second_image(file, (w, h))
-    return np.uint8(int(value) & 0xFF)
+    return np.full_like(img, int(value) & 0xFF, dtype=np.uint8)
 
 
 @register("basic_ops.boolean.not")
