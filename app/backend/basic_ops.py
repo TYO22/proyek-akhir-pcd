@@ -43,7 +43,7 @@ def add(img, mode="Konstanta", value=50, file=""):
     op = _operand(img, mode, value, file)
     if isinstance(op, np.ndarray):
         return cv2.add(img.astype(np.float32), op)
-    return cv2.add(img.astype(np.float32), np.float32(op))
+    return cv2.add(img.astype(np.float32), float(op)) 
 
 
 @register("basic_ops.arithmetic.substract")
@@ -52,7 +52,7 @@ def substract(img, mode="Konstanta", value=50, file=""):
     op = _operand(img, mode, value, file)
     if isinstance(op, np.ndarray):
         return cv2.subtract(img.astype(np.float32), op)
-    return cv2.subtract(img.astype(np.float32), np.float32(op))
+    return cv2.subtract(img.astype(np.float32), float(op))
 
 
 @register("basic_ops.arithmetic.multiply")
@@ -62,7 +62,7 @@ def multiply(img, mode="Konstanta", value=1.5, file=""):
     op = _operand(img, mode, value, file)
     if mode == "Gambar kedua":
         return cv2.multiply(f, op / 255.0)
-    return cv2.multiply(f, np.float32(op))
+    return cv2.multiply(f, float(op))
 
 
 @register("basic_ops.arithmetic.divide")
