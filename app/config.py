@@ -54,7 +54,7 @@ MEMBERS = [                        # tampil di About > Info Tim Developer
 ]
 
 GITHUB_URL = "https://github.com/TYO22/proyek-akhir-pcd"
-YOUTUBE_URL = "https://www.youtube.com/"
+YOUTUBE_URL = "https://youtu.be/mP-Rim1-mmg?si=Tk5mfBGCvXnvBqGi"
 
 # ---- ukuran jendela (auto-fit) ----
 WINDOW_SCREEN_FRACTION = 0.85
